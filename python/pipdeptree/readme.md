@@ -51,3 +51,20 @@ tree = PackageDAG.from_pkgs(pkgs)
 这里实例化PackageDAG对象，用的classmethod方法进行实例化。有点类似单例模式，具体总结可以看上面的注释
 
 
+``` python 
+# https://stackoverflow.com/questions/20599375/what-is-the-purpose-of-checking-self-class
+# https://stackoverflow.com/questions/1060499/difference-between-typeobj-and-obj-class/10633356#10633356
+# type与__class__区别：https://stackoverflow.com/questions/1060499/difference-between-typeobj-and-obj-class/10633356#10633356
+# 需要注意__class__可以被override，也即他是类的属性，有被修改的风险
+# 注意以下连接，使用super调用静态方法需要：super(type1, type2).func()
+# https://stackoverflow.com/questions/45498675/why-doesnt-super-work-with-static-methods-other-than-new
+return self.__class__.frozen_repr(self._obj)
+
+
+# https://stackoverflow.com/questions/20623925/class-vs-self-class-when-creating-object
+# self.__class__()可以更好的应用于继承的状态下，让python自己选择类进行实例化
+return self.__class__(self._obj, req)
+```
+代码有两处__class__的使用：
+1. 调用父类静态方法
+2. 实例化对象
