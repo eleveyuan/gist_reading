@@ -4,23 +4,26 @@ from nltk.corpus import stopwords
 
 def softmax(x):
     """Compute softmax values for each sets of scores in x."""
+    # 在应用 softmax 的时候，常见的问题是数值稳定性问题，也就是说，由于可能出现的指数和溢出误差，
+    # ∑j e^(z_j) 可能会变得非常大。这个溢出误差可以通过用数组的每个值减去其最大值来解决。
+    # https://stackoverflow.com/questions/34968722/how-to-implement-the-softmax-function-in-python
     e_x = np.exp(x - np.max(x))
     return e_x / e_x.sum()
 
 class word2vec(object):
     def __init__(self):
-        self.N = 10
+        self.N = 10  # 词嵌入维度
         self.X_train = []
         self.y_train = []
-        self.window_size = 2
-        self.alpha = 0.001
+        self.window_size = 2  # 圈词的窗口
+        self.alpha = 0.001  # 学习率
         self.words = []
         self.word_index = {}
 
     def initialize(self,V,data):
         self.V = V
-        self.W = np.random.uniform(-0.8, 0.8, (self.V, self.N))
-        self.W1 = np.random.uniform(-0.8, 0.8, (self.N, self.V))
+        self.W = np.random.uniform(-0.8, 0.8, (self.V, self.N))  # 输入-隐藏层权重矩阵
+        self.W1 = np.random.uniform(-0.8, 0.8, (self.N, self.V))  # 隐藏-输出层权重矩阵
         
         self.words = data
         for i in range(len(data)):
@@ -111,12 +114,15 @@ def prepare_data_for_training(sentences,w2v):
     
     #for i in range(len(words)):
     for sentence in sentences:
-        for i in range(len(sentence)):
+        for i in range(len(sentence)):  # 构建训练数据
             center_word = [0 for x in range(V)]
             center_word[vocab[sentence[i]]] = 1
             context = [0 for x in range(V)]
             
             for j in range(i-w2v.window_size,i+w2v.window_size):
+                # 对窗口内单词中构建ones-hot vector，也即向量中存在多个索引位置为1
+                # 对于当前代码会输出类似向量[1, 1, 0, 1, 0, 0]
+                # 这也即对应一个单词预测多个上下文单词的情况，也就可以做到共享权重矩阵
                 if i!=j and j>=0 and j<len(sentence):
                     context[vocab[sentence[j]]] += 1
             w2v.X_train.append(center_word)
