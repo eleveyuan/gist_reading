@@ -59,6 +59,7 @@ class word2vec(object):
             self.alpha *= 1/( (1+self.alpha*x) )
             
     def predict(self,word,number_of_predictions):
+        # 预测上下文词
         if word in self.words:
             index = self.word_index[word]
             X = [0 for i in range(self.V)]
@@ -80,22 +81,23 @@ class word2vec(object):
 
 
 def preprocessing(corpus):
-    stop_words = set(stopwords.words('english'))
+    stop_words = set(stopwords.words('english')) 
     training_data = []
-    sentences = corpus.split(".")
+    sentences = corpus.split(".")  # 划分句子
     for i in range(len(sentences)):
         sentences[i] = sentences[i].strip()
         sentence = sentences[i].split()
         x = [word.strip(string.punctuation) for word in sentence
-                                    if word not in stop_words]
+                                    if word not in stop_words]  # 去停词
         x = [word.lower() for word in x]
         training_data.append(x)
     return training_data
     
 
 def prepare_data_for_training(sentences,w2v):
+    # 处理数据
     data = {}
-    for sentence in sentences:
+    for sentence in sentences:  # 统计数据出现频率
         for word in sentence:
             if word not in data:
                 data[word] = 1
@@ -105,7 +107,7 @@ def prepare_data_for_training(sentences,w2v):
     data = sorted(list(data.keys()))
     vocab = {}
     for i in range(len(data)):
-        vocab[data[i]] = i
+        vocab[data[i]] = i  # 构建词典索引，个人认为可以使用enumerate构建更加pythonic
     
     #for i in range(len(words)):
     for sentence in sentences:
