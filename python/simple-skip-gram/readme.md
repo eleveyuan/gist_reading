@@ -8,6 +8,7 @@ Rong X. word2vec parameter learning explained[J]. arXiv preprint arXiv:1411.2738
 
 
 skip-gram是通过中心词预测上下文词的一个模型。就是一个CBOW模型的反转，具体如何反转的形式？
+
 隐藏层到输出层是共享权重矩阵的，skip-gram又要预测多个词，这怎么做到共享矩阵呢？可以看到在构建数据集的时候，x为one-hot向量，y为ones-hot向量(个人造的词，如有雷同，纯属趣味相投)。也即隐藏层到输出层，得到的向量做softmax损失，相应的更新y对应为1的索引。
 
 ``` python 
