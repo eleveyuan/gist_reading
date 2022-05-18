@@ -115,9 +115,9 @@ def prepare_data_for_training(sentences,w2v):
     #for i in range(len(words)):
     for sentence in sentences:
         for i in range(len(sentence)):  # 构建训练数据
-            center_word = [0 for x in range(V)]
+            center_word = [0 for x in range(V)]  # 中心词
             center_word[vocab[sentence[i]]] = 1
-            context = [0 for x in range(V)]
+            context = [0 for x in range(V)]  # 上下文词
             
             for j in range(i-w2v.window_size,i+w2v.window_size):
                 # 对窗口内单词中构建ones-hot vector，也即向量中存在多个索引位置为1
