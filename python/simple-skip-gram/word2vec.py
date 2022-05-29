@@ -31,14 +31,14 @@ class word2vec(object):
 
     
     def feed_forward(self,X):
-        self.h = np.dot(self.W.T,X).reshape(self.N,1)
-        self.u = np.dot(self.W1.T,self.h)
+        self.h = np.dot(self.W.T,X).reshape(self.N,1)  # 隐藏层向量
+        self.u = np.dot(self.W1.T,self.h)  # 输出向量
         #print(self.u)
-        self.y = softmax(self.u)
+        self.y = softmax(self.u)  # 后验概率分布
         return self.y
         
     def backpropagate(self,x,t):
-        e = self.y - np.asarray(t).reshape(self.V,1)
+        e = self.y - np.asarray(t).reshape(self.V,1)  # 预测error
         # e.shape is V x 1
         dLdW1 = np.dot(self.h,e.T)
         X = np.array(x).reshape(self.V,1)
