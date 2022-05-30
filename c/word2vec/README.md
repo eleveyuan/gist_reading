@@ -1,8 +1,11 @@
 ## word2vec
 
+### 核心函数
+* void InitNet(): 初始化网络
+* void InitUnigramTable(): 初始化负采样表
+
 ### 全局参数
 阅读word2vec首先得把全局参数搞清楚
-
 
 ### 助手函数
 
