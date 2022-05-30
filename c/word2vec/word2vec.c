@@ -377,7 +377,7 @@ void ReadVocab() {
 }
 
 /**
- * 
+ * 初始化网络
  */
 void InitNet() {
   long long a, b;
