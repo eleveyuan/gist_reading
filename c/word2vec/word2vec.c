@@ -71,6 +71,9 @@ void InitUnigramTable() {
   }
 }
 
+/**
+ * 读取文件的单词
+ */
 // Reads a single word from a file, assuming space + tab + EOL to be word boundaries
 void ReadWord(char *word, FILE *fin) {
   int a = 0, ch;
@@ -94,6 +97,9 @@ void ReadWord(char *word, FILE *fin) {
   word[a] = 0;
 }
 
+/**
+ * 获取hash值
+ */
 // Returns hash value of a word
 int GetWordHash(char *word) {
   unsigned long long a, hash = 0;
@@ -102,6 +108,9 @@ int GetWordHash(char *word) {
   return hash;
 }
 
+/** 
+ * 判断word是否存在, 并且获取单词在单词表的索引
+ */
 // Returns position of a word in the vocabulary; if the word is not found, returns -1
 int SearchVocab(char *word) {
   unsigned int hash = GetWordHash(word);
@@ -113,6 +122,9 @@ int SearchVocab(char *word) {
   return -1;
 }
 
+/**
+ * 读取word，并且获得单词索引
+ */
 // Reads a word and returns its index in the vocabulary
 int ReadWordIndex(FILE *fin) {
   char word[MAX_STRING];
@@ -121,6 +133,9 @@ int ReadWordIndex(FILE *fin) {
   return SearchVocab(word);
 }
 
+/**
+ * 往单词表里添加单词
+ */
 // Adds a word to the vocabulary
 int AddWordToVocab(char *word) {
   unsigned int hash, length = strlen(word) + 1;
@@ -140,11 +155,19 @@ int AddWordToVocab(char *word) {
   return vocab_size - 1;
 }
 
+/**
+ * 用于qsort函数，作为比较函数，判断单词之间词频关系
+ */ 
 // Used later for sorting by word counts
 int VocabCompare(const void *a, const void *b) {
     return ((struct vocab_word *)b)->cn - ((struct vocab_word *)a)->cn;
 }
 
+/**
+ * 对词典的频次进行排序
+ * 1. 使用qsort排序
+ * 2. 由于排序了，需要重新构建词典的hash表
+ */
 // Sorts the vocabulary by frequency using word counts
 void SortVocab() {
   int a, size;

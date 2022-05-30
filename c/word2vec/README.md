@@ -1,3 +1,18 @@
+## word2vec
+
+### 全局参数
+阅读word2vec首先得把全局参数搞清楚
+
+
+### 助手函数
+
+#### 词典表相关
+* void LearnVocabFromTrainFile(): 构建词典表
+* void SaveVocab(): 保存词典表
+* void ReadVocab(): 读取词典表
+* int AddWordToVocab(char *word): 往单词表
+
+
 ## 头文件以及全局变量
 
 
