@@ -18,7 +18,7 @@
 #include <math.h>
 #include <pthread.h>
 
-#define MAX_STRING 100
+#define MAX_STRING 100  // 一个单词的最大长度为100
 #define EXP_TABLE_SIZE 1000
 #define MAX_EXP 6
 #define MAX_SENTENCE_LENGTH 1000
@@ -30,13 +30,13 @@ typedef float real;                    // Precision of float numbers
 
 struct vocab_word {
   long long cn;  // 词频
-  int *point;  // 到达word路径上的节点，包含叶子结点在内
-  char *word, *code, codelen;  // 单词，哈夫曼编码，编码长度
-  // len(point) = codelen + 1
+  int *point;  // 到达word路径上的节点，包含叶子节点在内 
+  char *word, *code, codelen;  // 单词，霍夫曼编码，编码长度
+  // 其中len(point) = codelen + 1
 };
 
 
-// 常量以及超参数
+// 一些常量，包括训练使用的超参数
 char train_file[MAX_STRING], output_file[MAX_STRING];
 char save_vocab_file[MAX_STRING], read_vocab_file[MAX_STRING];
 struct vocab_word *vocab;
@@ -53,7 +53,7 @@ const int table_size = 1e8;
 int *table;
 
 void InitUnigramTable() {
-  // 词频表，用于实现负采样，每个词的权重为词频的3/4次方
+  // 词频表， 用于负采样
   int a, i;
   double train_words_pow = 0;
   double d1, power = 0.75;
@@ -76,14 +76,14 @@ void ReadWord(char *word, FILE *fin) {
   int a = 0, ch;
   while (!feof(fin)) {
     ch = fgetc(fin);
-    if (ch == 13) continue;
+    if (ch == 13) continue;  // 13为回车键
     if ((ch == ' ') || (ch == '\t') || (ch == '\n')) {
       if (a > 0) {
         if (ch == '\n') ungetc(ch, fin);
         break;
       }
       if (ch == '\n') {
-        strcpy(word, (char *)"</s>");
+        strcpy(word, (char *)"</s>");  // 读到换行符，则用</s>标识句子开头
         return;
       } else continue;
     }
@@ -124,19 +124,19 @@ int ReadWordIndex(FILE *fin) {
 // Adds a word to the vocabulary
 int AddWordToVocab(char *word) {
   unsigned int hash, length = strlen(word) + 1;
-  if (length > MAX_STRING) length = MAX_STRING;
+  if (length > MAX_STRING) length = MAX_STRING;  // 单词长度超过100就截断
   vocab[vocab_size].word = (char *)calloc(length, sizeof(char));
   strcpy(vocab[vocab_size].word, word);
   vocab[vocab_size].cn = 0;
   vocab_size++;
-  // Reallocate memory if needed
+  // Reallocate memory if needed  单词表容量不足时，扩展单词表
   if (vocab_size + 2 >= vocab_max_size) {
     vocab_max_size += 1000;
     vocab = (struct vocab_word *)realloc(vocab, vocab_max_size * sizeof(struct vocab_word));
   }
-  hash = GetWordHash(word);
-  while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
-  vocab_hash[hash] = vocab_size - 1;
+  hash = GetWordHash(word);  // 获得单词的hash值
+  while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;  // 出现hash冲突，则顺移到下一个空位置(线性探测再散列)
+  vocab_hash[hash] = vocab_size - 1;  // 在对应空位置出存放，hash对应单词表的位置
   return vocab_size - 1;
 }
 
@@ -150,16 +150,17 @@ void SortVocab() {
   int a, size;
   unsigned int hash;
   // Sort the vocabulary and keep </s> at the first position
-  qsort(&vocab[1], vocab_size - 1, sizeof(struct vocab_word), VocabCompare);
+  qsort(&vocab[1], vocab_size - 1, sizeof(struct vocab_word), VocabCompare);  // 利用统计的vocab词频进行升序排序，会修改传入的数据结构
   for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
   size = vocab_size;
   train_words = 0;
   for (a = 0; a < size; a++) {
     // Words occuring less than min_count times will be discarded from the vocab
-    if ((vocab[a].cn < min_count) && (a != 0)) {
+    if ((vocab[a].cn < min_count) && (a != 0)) {  // 丢弃词频较低的单词
       vocab_size--;
       free(vocab[a].word);
     } else {
+      // 这里由于排序，修改了单词顺序，需要重新计算hash值
       // Hash will be re-computed, as after the sorting it is not actual
       hash=GetWordHash(vocab[a].word);
       while (vocab_hash[hash] != -1) hash = (hash + 1) % vocab_hash_size;
@@ -196,7 +197,7 @@ void ReduceVocab() {
   min_reduce++;
 }
 
-// Create binary Huffman tree using the word counts  根据词频构建哈夫曼树
+// Create binary Huffman tree using the word counts
 // Frequent words will have short uniqe binary codes
 void CreateBinaryTree() {
   long long a, b, i, min1i, min2i, pos1, pos2, point[MAX_CODE_LENGTH];
@@ -263,11 +264,16 @@ void CreateBinaryTree() {
   free(parent_node);
 }
 
+/** 
+ * 读取训练数据文件
+ * 1. 收录word到vocab中 
+ * 2. 统计词频
+ */
 void LearnVocabFromTrainFile() {
   char word[MAX_STRING];
   FILE *fin;
   long long a, i;
-  for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
+  for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;  // 初始化词典哈希表
   fin = fopen(train_file, "rb");
   if (fin == NULL) {
     printf("ERROR: training data file not found!\n");
@@ -281,13 +287,13 @@ void LearnVocabFromTrainFile() {
     train_words++;
     if ((debug_mode > 1) && (train_words % 100000 == 0)) {
       printf("%lldK%c", train_words / 1000, 13);
-      fflush(stdout);
+      fflush(stdout);  // 立即输出到输出流中
     }
-    i = SearchVocab(word);
-    if (i == -1) {
+    i = SearchVocab(word);  // 查看是否word是否已经被收录到vocab中
+    if (i == -1) {  // 没有收录，则收录word
       a = AddWordToVocab(word);
       vocab[a].cn = 1;
-    } else vocab[i].cn++;
+    } else vocab[i].cn++;  // 收录过，则统计词频
     if (vocab_size > vocab_hash_size * 0.7) ReduceVocab();
   }
   SortVocab();
@@ -295,17 +301,23 @@ void LearnVocabFromTrainFile() {
     printf("Vocab size: %lld\n", vocab_size);
     printf("Words in train file: %lld\n", train_words);
   }
-  file_size = ftell(fin);
+  file_size = ftell(fin);  // 获取当前指针处，文件大小
   fclose(fin);
 }
 
+/**
+ * 将构建好的单词表数据，写入二进制文件中
+ */
 void SaveVocab() {
   long long i;
   FILE *fo = fopen(save_vocab_file, "wb");
-  for (i = 0; i < vocab_size; i++) fprintf(fo, "%s %lld\n", vocab[i].word, vocab[i].cn);
+  for (i = 0; i < vocab_size; i++) fprintf(fo, "%s %lld\n", vocab[i].word, vocab[i].cn);  // 写入文件： 单词和词频
   fclose(fo);
 }
 
+/**
+ * 读取存好的单词表数据
+ */
 void ReadVocab() {
   long long a, i = 0;
   char c;
@@ -329,19 +341,27 @@ void ReadVocab() {
     printf("Vocab size: %lld\n", vocab_size);
     printf("Words in train file: %lld\n", train_words);
   }
-  fin = fopen(train_file, "rb");
+  fin = fopen(train_file, "rb");   // 读取二进制文件
   if (fin == NULL) {
     printf("ERROR: training data file not found!\n");
     exit(1);
   }
-  fseek(fin, 0, SEEK_END);
-  file_size = ftell(fin);
+  // int fseek(FILE *stream, long int offset, int whence) 设置流 stream 的文件位置为给定的偏移 offset，参数 offset 意味着从给定的 whence 位置查找的字节数
+  // 将指针指到文件末尾
+  fseek(fin, 0, SEEK_END);  
+  file_size = ftell(fin); // 返回当前文件位置，和上面函数一起，获取文件大小
   fclose(fin);
 }
 
+/**
+ * 
+ */
 void InitNet() {
   long long a, b;
   unsigned long long next_random = 1;
+  // int posix_memalign (void **memptr, size_t alignment, size_t size);
+  // posix_memalign( )成功时会返回size字节的动态内存，并且这块内存的地址是alignment的倍数。参数alignment必须是2的幂，还是void指针的大小的倍数。
+  // eg. posix_memalign(&p, 32, 128) 将是一个 128 字节的内存块，其起始地址保证为 32 的倍数。
   a = posix_memalign((void **)&syn0, 128, (long long)vocab_size * layer1_size * sizeof(real));
   if (syn0 == NULL) {printf("Memory allocation failed\n"); exit(1);}
   if (hs) {
@@ -565,8 +585,8 @@ void TrainModel() {
     fprintf(fo, "%lld %lld\n", vocab_size, layer1_size);
     for (a = 0; a < vocab_size; a++) {
       fprintf(fo, "%s ", vocab[a].word);
-      if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);
-      else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);
+      if (binary) for (b = 0; b < layer1_size; b++) fwrite(&syn0[a * layer1_size + b], sizeof(real), 1, fo);  // 存储为二进制文件
+      else for (b = 0; b < layer1_size; b++) fprintf(fo, "%lf ", syn0[a * layer1_size + b]);  // 格式化存储为文本文件
       fprintf(fo, "\n");
     }
   } else {
@@ -673,31 +693,36 @@ int main(int argc, char **argv) {
     printf("./word2vec -train data.txt -output vec.txt -size 200 -window 5 -sample 1e-4 -negative 5 -hs 0 -binary 0 -cbow 1 -iter 3\n\n");
     return 0;
   }
+
+  // 初始化词向量，词汇表输入输出文件名为空
   output_file[0] = 0;
   save_vocab_file[0] = 0;
   read_vocab_file[0] = 0;
+
   if ((i = ArgPos((char *)"-size", argc, argv)) > 0) layer1_size = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-train", argc, argv)) > 0) strcpy(train_file, argv[i + 1]);
   if ((i = ArgPos((char *)"-save-vocab", argc, argv)) > 0) strcpy(save_vocab_file, argv[i + 1]);
   if ((i = ArgPos((char *)"-read-vocab", argc, argv)) > 0) strcpy(read_vocab_file, argv[i + 1]);
   if ((i = ArgPos((char *)"-debug", argc, argv)) > 0) debug_mode = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-binary", argc, argv)) > 0) binary = atoi(argv[i + 1]);
-  if ((i = ArgPos((char *)"-cbow", argc, argv)) > 0) cbow = atoi(argv[i + 1]);  // 使用cbow还是skip-gram模型
-  if (cbow) alpha = 0.05;  // cbow模型参数alpha默认0.05，skip-gram默认0.025
+  if ((i = ArgPos((char *)"-cbow", argc, argv)) > 0) cbow = atoi(argv[i + 1]); // 是否使用cbow，否则使用skip-gram
+  if (cbow) alpha = 0.05;  // 如果使用cbow，默认alpha大小为0.05，否则默认0.025
   if ((i = ArgPos((char *)"-alpha", argc, argv)) > 0) alpha = atof(argv[i + 1]);
   if ((i = ArgPos((char *)"-output", argc, argv)) > 0) strcpy(output_file, argv[i + 1]);
   if ((i = ArgPos((char *)"-window", argc, argv)) > 0) window = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-sample", argc, argv)) > 0) sample = atof(argv[i + 1]);
   if ((i = ArgPos((char *)"-hs", argc, argv)) > 0) hs = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-negative", argc, argv)) > 0) negative = atoi(argv[i + 1]);
-  if ((i = ArgPos((char *)"-threads", argc, argv)) > 0) num_threads = atoi(argv[i + 1]);
-  if ((i = ArgPos((char *)"-iter", argc, argv)) > 0) iter = atoi(argv[i + 1]);
+  if ((i = ArgPos((char *)"-threads", argc, argv)) > 0) num_threads = atoi(argv[i + 1]);  // 线程数
+  if ((i = ArgPos((char *)"-iter", argc, argv)) > 0) iter = atoi(argv[i + 1]);  // 迭代数
   if ((i = ArgPos((char *)"-min-count", argc, argv)) > 0) min_count = atoi(argv[i + 1]);
   if ((i = ArgPos((char *)"-classes", argc, argv)) > 0) classes = atoi(argv[i + 1]);
-  vocab = (struct vocab_word *)calloc(vocab_max_size, sizeof(struct vocab_word));
-  vocab_hash = (int *)calloc(vocab_hash_size, sizeof(int));
-  expTable = (real *)malloc((EXP_TABLE_SIZE + 1) * sizeof(real));  // 保存预先计算好的激活值
-  for (i = 0; i < EXP_TABLE_SIZE; i++) {
+
+  vocab = (struct vocab_word *)calloc(vocab_max_size, sizeof(struct vocab_word));  // vocab单词表的定义(calloc()初始化每个位置都为0)
+  vocab_hash = (int *)calloc(vocab_hash_size, sizeof(int));  // vocab_hash的定义
+
+  expTable = (real *)malloc((EXP_TABLE_SIZE + 1) * sizeof(real)); 
+  for (i = 0; i < EXP_TABLE_SIZE; i++) {  // 预计算sigmoid定义域在(-6, 6)的激活值，空间换时间，一个大小为1000的数组
     expTable[i] = exp((i / (real)EXP_TABLE_SIZE * 2 - 1) * MAX_EXP); // Precompute the exp() table
     expTable[i] = expTable[i] / (expTable[i] + 1);                   // Precompute f(x) = x / (x + 1)
   }
