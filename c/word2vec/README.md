@@ -1,14 +1,14 @@
 ## word2vec
 
 word2vec源码，使用c语言实现，不同于那些pytorch/tensorflow实现一个神经网络的出发点。
-* word2vec更加注重的是实现，尽可能优化，使用求导完的推导公式进行计算
-* 使用框架实现神经网络，更加注重的是架构，更加上层
+* word2vec更加注重的是实现，尽可能<优化>，使用求导完的推导公式进行计算
+* 使用框架实现神经网络，更加注重的是<架构>，更加上层
 
-详细注释见文件word2vec.c
+**详细注释见文件word2vec.c**
 
 ### 核心函数
 
-* void InitNet(): 初始化网络
+* void InitNet(): 初始化网络，也即权重矩阵
 * void InitUnigramTable(): 初始化负采样表
 * void CreateBinaryTree(): 构建霍夫曼树，实际使用的类似堆排序的方式，生成了三个辅助数组
 * void *TrainModelThread(void *id): 训练
@@ -95,8 +95,6 @@ syn1neg： <br />
 * void ReadVocab(): 读取词典表
 * int AddWordToVocab(char *word): 往单词表添加单词
 
-
-## 头文件
 
 ## 一些c函数
 
