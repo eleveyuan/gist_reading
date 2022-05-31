@@ -6,21 +6,21 @@
 * void CreateBinaryTree(): 构建霍夫曼树，实际使用的类似堆排序的方式，生成了三个辅助数组
 
 ### 全局参数
-阅读word2vec首先得把全局参数搞清楚
+阅读word2vec首先得把全局参数搞清楚:
 
-\<\s\>: 表示句首
-vocab_word: 一个单词包含的信息的结构体， 主要包括：单词，词频，霍夫曼编码
-alpha: 学习率
-train_words: 语料中训练用到的所有词
-vocab: 单词表
-vocab_hahs: 单词hash表，用于快速查找单词在vocab中的索引
-expTable: 预计算的激活函数值表，即sigmoid在定义域(-6,6)的函数值
-sample: 用于下采样
-table_size: 负采样单词索引表大小
+\<\s\>: 表示句首 <br />
+vocab_word: 一个单词包含的信息的结构体， 主要包括：单词，词频，霍夫曼编码 <br />
+alpha: 学习率 <br />
+train_words: 语料中训练用到的所有词 <br />
+vocab: 单词表 <br />
+vocab_hahs: 单词hash表，用于快速查找单词在vocab中的索引 <br />
+expTable: 预计算的激活函数值表，即sigmoid在定义域(-6,6)的函数值 <br />
+sample: 用于下采样 <br />
+table_size: 负采样单词索引表大小 <br />
 
-syn0: 
-syn1: 
-syn1neg: 
+syn0:  <br />
+syn1:  <br />
+syn1neg:  <br />
 
 ### 助手函数
 
