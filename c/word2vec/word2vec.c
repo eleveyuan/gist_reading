@@ -428,7 +428,7 @@ void InitNet() {
  * 3. 读取句子，并对高频词进行下采样
  * 4. 判断是否线程是否训练完数据，是的重新一次迭代
  * 5. cbow训练:
- *    5.1.
+ *    5.1. 主要基于一个窗口上下文传递，向量级别的更新
  * 6. skip-gram训练:
  *    6.1.
  */
@@ -488,36 +488,37 @@ void *TrainModelThread(void *id) {
       fseek(fi, file_size / (long long)num_threads * (long long)id, SEEK_SET);
       continue;
     }
-    word = sen[sentence_position];
+    word = sen[sentence_position];  // attention: 这里的word为中心词
     if (word == -1) continue;
     for (c = 0; c < layer1_size; c++) neu1[c] = 0;
     for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
     next_random = next_random * (unsigned long long)25214903917 + 11;
-    b = next_random % window;
+    b = next_random % window;  // b的范围[0, window-1]
     if (cbow) {  //train the cbow architecture
       // in -> hidden
       cw = 0;
       for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
+        // 把一个窗口中的单词全部上下文，计算出隐藏向量
         c = sentence_position - window + a;
         if (c < 0) continue;
         if (c >= sentence_length) continue;
         last_word = sen[c];
         if (last_word == -1) continue;
-        for (c = 0; c < layer1_size; c++) neu1[c] += syn0[c + last_word * layer1_size];
-        cw++;
+        for (c = 0; c < layer1_size; c++) neu1[c] += syn0[c + last_word * layer1_size]; // 把last_word索引的行数据加到neu1
+        cw++; // cw: context word统计上下文单词数量
       }
       if (cw) {
-        for (c = 0; c < layer1_size; c++) neu1[c] /= cw;
-        if (hs) for (d = 0; d < vocab[word].codelen; d++) {
+        for (c = 0; c < layer1_size; c++) neu1[c] /= cw;  // 对上面summation得到的向量，取平均
+        if (hs) for (d = 0; d < vocab[word].codelen; d++) {  // hierarchical softmax训练
           f = 0;
-          l2 = vocab[word].point[d] * layer1_size;
+          l2 = vocab[word].point[d] * layer1_size;  // point[d] 是输出矩阵的一行的索引, l2 是该词在输出层权重 (syn1) 中的索引
           // Propagate hidden -> output
           for (c = 0; c < layer1_size; c++) f += neu1[c] * syn1[c + l2];
-          if (f <= -MAX_EXP) continue;
+          if (f <= -MAX_EXP) continue; 
           else if (f >= MAX_EXP) continue;
-          else f = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];
+          else f = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];  // 查询激活值
           // 'g' is the gradient multiplied by the learning rate
-          g = (1 - vocab[word].code[d] - f) * alpha;
+          g = (1 - vocab[word].code[d] - f) * alpha;  // 对于每个父节点往左还是往右预测error=(label-f)=(1-code-f)
           // Propagate errors output -> hidden
           for (c = 0; c < layer1_size; c++) neu1e[c] += g * syn1[c + l2];
           // Learn weights hidden -> output
@@ -562,13 +563,13 @@ void *TrainModelThread(void *id) {
         last_word = sen[c];
         if (last_word == -1) continue;
         l1 = last_word * layer1_size;
-        for (c = 0; c < layer1_size; c++) neu1e[c] = 0;
+        for (c = 0; c < layer1_size; c++) neu1e[c] = 0;  // 隐藏层到输出层的向量
         // HIERARCHICAL SOFTMAX
         if (hs) for (d = 0; d < vocab[word].codelen; d++) {
           f = 0;
           l2 = vocab[word].point[d] * layer1_size;
           // Propagate hidden -> output
-          for (c = 0; c < layer1_size; c++) f += syn0[c + l1] * syn1[c + l2];
+          for (c = 0; c < layer1_size; c++) f += syn0[c + l1] * syn1[c + l2];  // 不同于cbow这里不是使用neu1
           if (f <= -MAX_EXP) continue;
           else if (f >= MAX_EXP) continue;
           else f = expTable[(int)((f + MAX_EXP) * (EXP_TABLE_SIZE / MAX_EXP / 2))];

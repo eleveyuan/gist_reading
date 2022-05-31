@@ -18,9 +18,11 @@ expTable: 预计算的激活函数值表，即sigmoid在定义域(-6,6)的函数
 sample: 用于下采样 <br />
 table_size: 负采样单词索引表大小 <br />
 
-syn0:  <br />
-syn1:  <br />
-syn1neg:  <br />
+neu1：input vector <br />
+neu1e：反向更新时，预测与实际值(cbow为中心词，skip-gram为上下文词)的error <br />
+syn0：输入到隐藏层权重矩阵 <br />
+syn1：隐藏层到输出层权重矩阵 <br />
+syn1neg： <br />
 
 ### 助手函数
 
