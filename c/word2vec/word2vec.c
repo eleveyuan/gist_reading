@@ -22,7 +22,7 @@
 #define EXP_TABLE_SIZE 1000
 #define MAX_EXP 6
 #define MAX_SENTENCE_LENGTH 1000
-#define MAX_CODE_LENGTH 40
+#define MAX_CODE_LENGTH 40  // 树最深40，叶子节点有2^(40-1)个
 
 const int vocab_hash_size = 30000000;  // Maximum 30 * 0.7 = 21M words in the vocabulary
 
@@ -52,6 +52,9 @@ int hs = 0, negative = 5;
 const int table_size = 1e8;
 int *table;
 
+/**
+ * 负采样
+ */
 void InitUnigramTable() {
   // 词频表， 用于负采样
   int a, i;
@@ -173,7 +176,7 @@ void SortVocab() {
   int a, size;
   unsigned int hash;
   // Sort the vocabulary and keep </s> at the first position
-  qsort(&vocab[1], vocab_size - 1, sizeof(struct vocab_word), VocabCompare);  // 利用统计的vocab词频进行升序排序，会修改传入的数据结构
+  qsort(&vocab[1], vocab_size - 1, sizeof(struct vocab_word), VocabCompare);  // 利用统计的vocab词频进行降序排序，会修改传入的数据结构
   for (a = 0; a < vocab_hash_size; a++) vocab_hash[a] = -1;
   size = vocab_size;
   train_words = 0;
@@ -220,9 +223,15 @@ void ReduceVocab() {
   min_reduce++;
 }
 
+/**
+ * 构建二叉霍夫曼树
+ * 1. 不是真正构建了一颗树，而是类似堆排序的方式填充好一颗树所有节点，是用来三个数组来进行构建(计数数据，父节点数组， 二叉树数组)
+ * 2. 通过构建的(父节点数组， 二叉树数组)填充词汇表中vocab_word数据结构中的霍夫曼信息(code, point, codelen)
+ */
 // Create binary Huffman tree using the word counts
 // Frequent words will have short uniqe binary codes
 void CreateBinaryTree() {
+  // 叶子节点有vocab个，非叶子节点有vocab-1个，总节点2*vocab-1个
   long long a, b, i, min1i, min2i, pos1, pos2, point[MAX_CODE_LENGTH];
   char code[MAX_CODE_LENGTH];
   long long *count = (long long *)calloc(vocab_size * 2 + 1, sizeof(long long));
@@ -262,7 +271,7 @@ void CreateBinaryTree() {
     count[vocab_size + a] = count[min1i] + count[min2i];
     parent_node[min1i] = vocab_size + a;
     parent_node[min2i] = vocab_size + a;
-    binary[min2i] = 1;
+    binary[min2i] = 1;  //右边节点为1，左节点为0
   }
   // Now assign binary code to each vocabulary word
   for (a = 0; a < vocab_size; a++) {
@@ -273,7 +282,7 @@ void CreateBinaryTree() {
       point[i] = b;
       i++;
       b = parent_node[b];
-      if (b == vocab_size * 2 - 2) break;
+      if (b == vocab_size * 2 - 2) break;  // 树的最后一个非叶子节点
     }
     vocab[a].codelen = i;
     vocab[a].point[0] = vocab_size - 2;
@@ -378,6 +387,8 @@ void ReadVocab() {
 
 /**
  * 初始化网络
+ * 1. 如果使用负采样，即初始化负采样网络
+ * 2. 如果使用层次化softmax，即初始化层次化softmax网络，并构建霍夫曼树
  */
 void InitNet() {
   long long a, b;
@@ -392,7 +403,7 @@ void InitNet() {
     // syn1表示哈夫曼树的内部节点向量表示
     a = posix_memalign((void **)&syn1, 128, (long long)vocab_size * layer1_size * sizeof(real));
     if (syn1 == NULL) {printf("Memory allocation failed\n"); exit(1);}
-    for (a = 0; a < vocab_size; a++) for (b = 0; b < layer1_size; b++)
+    for (a = 0; a < vocab_size; a++) for (b = 0; b < layer1_size; b++) // 当vocab=1000时，网络大小： 1000*100
      syn1[a * layer1_size + b] = 0;
   }
   // 负采样算法
@@ -410,17 +421,28 @@ void InitNet() {
   CreateBinaryTree();
 }
 
+/**
+ * 模型训练
+ * 1. 为不同训练线程分配相应的语料
+ * 2. 根据训练的数据的增加，降低学习率
+ * 3. 读取句子，并对高频词进行下采样
+ * 4. 判断是否线程是否训练完数据，是的重新一次迭代
+ * 5. cbow训练:
+ *    5.1.
+ * 6. skip-gram训练:
+ *    6.1.
+ */
 void *TrainModelThread(void *id) {
   long long a, b, d, cw, word, last_word, sentence_length = 0, sentence_position = 0;
   long long word_count = 0, last_word_count = 0, sen[MAX_SENTENCE_LENGTH + 1];
   long long l1, l2, c, target, label, local_iter = iter;
-  unsigned long long next_random = (long long)id;
+  unsigned long long next_random = (long long)id; // 根据当前线程号，生成随机值
   real f, g;
   clock_t now;
-  real *neu1 = (real *)calloc(layer1_size, sizeof(real));
-  real *neu1e = (real *)calloc(layer1_size, sizeof(real));
+  real *neu1 = (real *)calloc(layer1_size, sizeof(real));  // 输入向量
+  real *neu1e = (real *)calloc(layer1_size, sizeof(real));  // 输出向量
   FILE *fi = fopen(train_file, "rb");
-  fseek(fi, file_size / (long long)num_threads * (long long)id, SEEK_SET);
+  fseek(fi, file_size / (long long)num_threads * (long long)id, SEEK_SET);  // 为每个线程分割训练数据，设定文件头初始位置
   while (1) {
     if (word_count - last_word_count > 10000) {
       word_count_actual += word_count - last_word_count;
@@ -432,35 +454,37 @@ void *TrainModelThread(void *id) {
          word_count_actual / ((real)(now - start + 1) / (real)CLOCKS_PER_SEC * 1000));
         fflush(stdout);
       }
-      alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));
-      if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;
+      alpha = starting_alpha * (1 - word_count_actual / (real)(iter * train_words + 1));  // 随着迭代，降低学习率alpha，其中train_words为所有词出现的次数
+      if (alpha < starting_alpha * 0.0001) alpha = starting_alpha * 0.0001;  // 防止学习率降低到0
     }
     if (sentence_length == 0) {
       while (1) {
-        word = ReadWordIndex(fi);
+        word = ReadWordIndex(fi);  // 获取词的索引
         if (feof(fi)) break;
         if (word == -1) continue;
         word_count++;
-        if (word == 0) break;
+        if (word == 0) break;  // 读到换行符
         // The subsampling randomly discards frequent words while keeping the ranking same
-        if (sample > 0) {
+        if (sample > 0) {  // 下采样，降低高频词的影响
           real ran = (sqrt(vocab[word].cn / (sample * train_words)) + 1) * (sample * train_words) / vocab[word].cn;
           next_random = next_random * (unsigned long long)25214903917 + 11;
           if (ran < (next_random & 0xFFFF) / (real)65536) continue;
         }
         sen[sentence_length] = word;
         sentence_length++;
-        if (sentence_length >= MAX_SENTENCE_LENGTH) break;
+        if (sentence_length >= MAX_SENTENCE_LENGTH) break; // 对太长的句子进行截断
       }
       sentence_position = 0;
     }
     if (feof(fi) || (word_count > train_words / num_threads)) {
+      // 迭代到达文件末尾（最后一个线程才会发生），或者当前线程对应的数据已经完整迭代一次
       word_count_actual += word_count - last_word_count;
       local_iter--;
       if (local_iter == 0) break;
       word_count = 0;
       last_word_count = 0;
       sentence_length = 0;
+      // 重新定位到当前线程对应的数据头位置，开始下一次迭代
       fseek(fi, file_size / (long long)num_threads * (long long)id, SEEK_SET);
       continue;
     }
