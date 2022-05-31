@@ -427,10 +427,8 @@ void InitNet() {
  * 2. 根据训练的数据的增加，降低学习率
  * 3. 读取句子，并对高频词进行下采样
  * 4. 判断是否线程是否训练完数据，是的重新一次迭代
- * 5. cbow训练:
- *    5.1. 主要基于一个窗口上下文传递，向量级别的更新
- * 6. skip-gram训练:
- *    6.1.
+ * 5. cbow训练
+ * 6. skip-gram训练
  */
 void *TrainModelThread(void *id) {
   long long a, b, d, cw, word, last_word, sentence_length = 0, sentence_position = 0;

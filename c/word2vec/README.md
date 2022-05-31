@@ -1,9 +1,72 @@
 ## word2vec
 
+word2vec源码，使用c语言实现，不同于那些pytorch/tensorflow实现一个神经网络的出发点。
+* word2vec更加注重的是实现，尽可能优化，使用求导完的推导公式进行计算
+* 使用框架实现神经网络，更加注重的是架构，更加上层
+
+详细注释见文件word2vec.c
+
 ### 核心函数
+
 * void InitNet(): 初始化网络
 * void InitUnigramTable(): 初始化负采样表
 * void CreateBinaryTree(): 构建霍夫曼树，实际使用的类似堆排序的方式，生成了三个辅助数组
+* void *TrainModelThread(void *id): 训练
+
+
+构建霍夫曼树：
+
+使用一个循环构建，可以看看堆排序
+``` c
+  for (a = 0; a < vocab_size - 1; a++) {
+    // First, find two smallest nodes 'min1, min2'
+    if (pos1 >= 0) {
+      if (count[pos1] < count[pos2]) {
+        min1i = pos1;
+        pos1--;
+      } else {
+        min1i = pos2;
+        pos2++;
+      }
+    } else {
+      min1i = pos2;
+      pos2++;
+    }
+    if (pos1 >= 0) {
+      if (count[pos1] < count[pos2]) {
+        min2i = pos1;
+        pos1--;
+      } else {
+        min2i = pos2;
+        pos2++;
+      }
+    } else {
+      min2i = pos2;
+      pos2++;
+    }
+    count[vocab_size + a] = count[min1i] + count[min2i];
+    parent_node[min1i] = vocab_size + a;
+    parent_node[min2i] = vocab_size + a;
+    binary[min2i] = 1;  //右边节点为1，左节点为0
+  }
+```
+
+对窗口的单词，进行summation：
+1. a < window * 2 + 1 - b
+2. c = sentence_position - window + a;
+这两个trick，来获取中心词旁边的上下文词。
+``` c
+for (a = b; a < window * 2 + 1 - b; a++) if (a != window) {
+    // 把一个窗口中的单词全部上下文，计算出隐藏向量
+    c = sentence_position - window + a;
+    if (c < 0) continue;
+    if (c >= sentence_length) continue;
+    last_word = sen[c];
+    if (last_word == -1) continue;
+    for (c = 0; c < layer1_size; c++) neu1[c] += syn0[c + last_word * layer1_size]; // 把last_word索引的行数据加到neu1
+    cw++; // cw: context word统计上下文单词数量
+}
+```
 
 ### 全局参数
 阅读word2vec首先得把全局参数搞清楚:
@@ -30,11 +93,10 @@ syn1neg： <br />
 * void LearnVocabFromTrainFile(): 构建词典表
 * void SaveVocab(): 保存词典表
 * void ReadVocab(): 读取词典表
-* int AddWordToVocab(char *word): 往单词表
+* int AddWordToVocab(char *word): 往单词表添加单词
 
 
-## 头文件以及全局变量
-
+## 头文件
 
 ## 一些c函数
 
