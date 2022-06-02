@@ -36,12 +36,12 @@
 #define HASHFN bitwisehash
 
 typedef double real;
-typedef struct cooccur_rec {
+typedef struct cooccur_rec {  // 词共现结构体
     int word1;
     int word2;
     real val;
 } CREC;
-typedef struct hashrec {
+typedef struct hashrec {  // 词hash链表
     char *word;
     long long num; //count or id
     struct hashrec *next;
