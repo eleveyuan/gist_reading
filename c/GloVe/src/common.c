@@ -38,14 +38,14 @@
 
 /* Efficient string comparison */
 int scmp( char *s1, char *s2 ) {
-    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}
+    while (*s1 != '\0' && *s1 == *s2) {s1++; s2++;}  // '\0'为字符串结尾
     return (*s1 - *s2);
 }
 
 /* Move-to-front hashing and hash function from Hugh Williams, http://www.seg.rmit.edu.au/code/zwh-ipl/ */
 
 /* Simple bitwise hash function */
-unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
+unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {  // 生成hash值
     char c;
     unsigned int h;
     h = seed;
@@ -54,7 +54,7 @@ unsigned int bitwisehash(char *word, int tsize, unsigned int seed) {
 }
 
 /* Create hash table, initialise pointers to NULL */
-HASHREC ** inithashtable() {
+HASHREC ** inithashtable() {  // 初始化hash表
     int i;
     HASHREC **ht;
     ht = (HASHREC **) malloc( sizeof(HASHREC *) * TSIZE );
@@ -72,7 +72,7 @@ HASHREC ** inithashtable() {
    still little to no harm will be done for other encodings like iso-8859-1.
    (This function appears identically copied in vocab_count.c and cooccur.c.)
  */
-int get_word(char *word, FILE *fin) {
+int get_word(char *word, FILE *fin) {  // 读取单词
     int i = 0, ch;
     for ( ; ; ) {
         ch = fgetc(fin);
@@ -82,7 +82,7 @@ int get_word(char *word, FILE *fin) {
             return 1;
         }
         if (i == 0 && ((ch == ' ') || (ch == '\t'))) continue; // skip leading space
-        if ((ch == EOF) || (ch == ' ') || (ch == '\t') || (ch == '\n')) {
+        if ((ch == EOF) || (ch == ' ') || (ch == '\t') || (ch == '\n')) { // 读取完一个单词，将ch回写到fin文件输入流中
             if (ch == '\n') ungetc(ch, fin); // return the newline next time as document ender
             break;
         }
@@ -104,7 +104,7 @@ int get_word(char *word, FILE *fin) {
     return 0;
 }
 
-int find_arg(char *str, int argc, char **argv) {
+int find_arg(char *str, int argc, char **argv) {  // 处理程序运行读入的参数
     int i;
     for (i = 1; i < argc; i++) {
         if (!scmp(str, argv[i])) {
@@ -118,7 +118,7 @@ int find_arg(char *str, int argc, char **argv) {
     return -1;
 }
 
-void free_table(HASHREC **ht) {
+void free_table(HASHREC **ht) {  // clear清除hash表
     int i;
     HASHREC* current;
     HASHREC* tmp;
@@ -134,7 +134,7 @@ void free_table(HASHREC **ht) {
     free(ht);
 }
 
-void free_fid(FILE **fid, const int num) {
+void free_fid(FILE **fid, const int num) {  // 关闭文件输入输出流
     int i;
     for(i = 0; i < num; i++) {
         if(fid[i] != NULL)
