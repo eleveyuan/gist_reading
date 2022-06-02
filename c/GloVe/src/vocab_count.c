@@ -29,7 +29,7 @@
 #include <string.h>
 #include "common.h"
 
-typedef struct vocabulary {
+typedef struct vocabulary { // 单词与词频
     char *word;
     long long count;
 } VOCAB;
@@ -40,24 +40,24 @@ long long max_vocab = 0; // max_vocab = 0 for no limit
 
 
 /* Vocab frequency comparison; break ties alphabetically */
-int CompareVocabTie(const void *a, const void *b) {
+int CompareVocabTie(const void *a, const void *b) {  // 单词与词频比较
     long long c;
     if ( (c = ((VOCAB *) b)->count - ((VOCAB *) a)->count) != 0) return ( c > 0 ? 1 : -1 );
-    else return (scmp(((VOCAB *) a)->word,((VOCAB *) b)->word));
+    else return (scmp(((VOCAB *) a)->word,((VOCAB *) b)->word));  // 词频一致时对比单词顺序
     
 }
 
 /* Vocab frequency comparison; no tie-breaker */
-int CompareVocab(const void *a, const void *b) {
+int CompareVocab(const void *a, const void *b) {  // 词频比较
     long long c;
     if ( (c = ((VOCAB *) b)->count - ((VOCAB *) a)->count) != 0) return ( c > 0 ? 1 : -1 );
     else return 0;
 }
 
 /* Search hash table for given string, insert if not found */
-void hashinsert(HASHREC **ht, char *w) {
+void hashinsert(HASHREC **ht, char *w) { 
     HASHREC     *htmp, *hprv;
-    unsigned int hval = HASHFN(w, TSIZE, SEED);
+    unsigned int hval = HASHFN(w, TSIZE, SEED);  // 生成hash值
     
     for (hprv = NULL, htmp = ht[hval]; htmp != NULL && scmp(htmp->word, w) != 0; hprv = htmp, htmp = htmp->next);
     if (htmp == NULL) {
@@ -84,7 +84,7 @@ void hashinsert(HASHREC **ht, char *w) {
     return;
 }
 
-int get_counts() {
+int get_counts() {  // 获取词频
     long long i = 0, j = 0, vocab_size = 12500;
     // char format[20];
     char str[MAX_STRING_LENGTH + 1];
@@ -116,7 +116,7 @@ int get_counts() {
             vocab[j].word = htmp->word;
             vocab[j].count = htmp->num;
             j++;
-            if (j>=vocab_size) {
+            if (j>=vocab_size) {  // 单词表扩容
                 vocab_size += 2500;
                 vocab = (VOCAB *)realloc(vocab, sizeof(VOCAB) * vocab_size);
             }
