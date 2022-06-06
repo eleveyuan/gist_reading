@@ -531,7 +531,7 @@ void *TrainModelThread(void *id) {
             next_random = next_random * (unsigned long long)25214903917 + 11;
             target = table[(next_random >> 16) % table_size];
             if (target == 0) target = next_random % (vocab_size - 1) + 1;
-            if (target == word) continue;
+            if (target == word) continue; // 遇到重复词跳过
             label = 0;
           }
           l2 = target * layer1_size;
