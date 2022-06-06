@@ -31,7 +31,7 @@ Args::Args() {  // 默认参数
   maxn = 6;
   thread = 12;
   lrUpdateRate = 100;
-  t = 1e-4;
+  t = 1e-4;   // 过滤高频词
   label = "__label__";  // 用于监督学习
   verbose = 2;
   pretrainedVectors = "";

@@ -37,11 +37,11 @@ class Args {
     int minCount;
     int minCountLabel;
     int neg;
-    int wordNgrams;
+    int wordNgrams;  //  max length of word ngram 类似于词伙
     loss_name loss;
     model_name model;
     int bucket;
-    int minn;
+    int minn;  // min length of character ngrams 单词的子词
     int maxn;
     int thread;
     double t;
@@ -50,7 +50,8 @@ class Args {
     std::string pretrainedVectors;
     int saveOutput;
 
-    bool qout;
+    // 模型压缩的参数
+    bool qout;  
     bool retrain;
     bool qnorm;
     size_t cutoff;

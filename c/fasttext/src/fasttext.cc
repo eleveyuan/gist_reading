@@ -283,7 +283,7 @@ void FastText::supervised(Model& model, real lr,
   if (labels.size() == 0 || line.size() == 0) return;
   std::uniform_int_distribution<> uniform(0, labels.size() - 1);
   int32_t i = uniform(model.rng);
-  model.update(line, labels[i], lr);
+  model.update(line, labels[i], lr);  // 一次做一个多分类，不是同时输入多个标签
 }
 
 void FastText::cbow(Model& model, real lr,

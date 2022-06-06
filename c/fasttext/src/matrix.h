@@ -24,8 +24,8 @@ class Matrix {
 
   public:
     real* data_;
-    int64_t m_;
-    int64_t n_;
+    int64_t m_;  // 行
+    int64_t n_;  // 列
 
     Matrix();
     Matrix(int64_t, int64_t);

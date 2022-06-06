@@ -24,7 +24,7 @@ Matrix::Matrix() {
   data_ = nullptr;
 }
 
-Matrix::Matrix(int64_t m, int64_t n) {
+Matrix::Matrix(int64_t m, int64_t n) {  // 矩阵是按一维存储
   m_ = m;
   n_ = n;
   data_ = new real[m * n];

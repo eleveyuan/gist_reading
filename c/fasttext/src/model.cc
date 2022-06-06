@@ -22,8 +22,8 @@ Model::Model(std::shared_ptr<Matrix> wi,
   : hidden_(args->dim), output_(wo->m_),
   grad_(args->dim), rng(seed), quant_(false)
 {
-  wi_ = wi;
-  wo_ = wo;
+  wi_ = wi;  // 输入矩阵shape: (nwords_ + bucket) * dim
+  wo_ = wo;  // 输出矩阵shape: 监督: nlabels_ * dim, 无监督: nwords_ * dim
   args_ = args;
   osz_ = wo->m_;
   hsz_ = args->dim;
@@ -84,18 +84,20 @@ real Model::hierarchicalSoftmax(int32_t target, real lr) {  // 层次softmax损�
   return loss;
 }
 
-void Model::computeOutputSoftmax(Vector& hidden, Vector& output) const {
+void Model::computeOutputSoftmax(Vector& hidden, Vector& output) const {  // 计算softmax
   if (quant_ && args_->qout) {
     output.mul(*qwo_, hidden);
   } else {
     output.mul(*wo_, hidden);
   }
+
+  // 朴素的softmax
   real max = output[0], z = 0.0;
   for (int32_t i = 0; i < osz_; i++) {
     max = std::max(output[i], max);
   }
   for (int32_t i = 0; i < osz_; i++) {
-    output[i] = exp(output[i] - max);
+    output[i] = exp(output[i] - max);  // 在应用 softmax 的时候，常见的问题是数值稳定性问题，也就是说，由于可能出现的指数和溢出误差
     z += output[i];
   }
   for (int32_t i = 0; i < osz_; i++) {
@@ -122,8 +124,8 @@ real Model::softmax(int32_t target, real lr) {
 void Model::computeHidden(const std::vector<int32_t>& input, Vector& hidden) const {
   assert(hidden.size() == hsz_);
   hidden.zero();
-  for (auto it = input.cbegin(); it != input.cend(); ++it) {
-    if(quant_) {
+  for (auto it = input.cbegin(); it != input.cend(); ++it) { // cbegin 为const begin 不能改写所指的位置的内容
+    if(quant_) {  // 用于压缩模型
       hidden.addRow(*qwi_, *it);
     } else {
       hidden.addRow(*wi_, *it);
@@ -204,7 +206,7 @@ void Model::update(const std::vector<int32_t>& input, int32_t target, real lr) {
   assert(target >= 0);
   assert(target < osz_);
   if (input.size() == 0) return;
-  computeHidden(input, hidden_);
+  computeHidden(input, hidden_);  // 计算输入层到隐藏层：1/N * A * x_n
   if (args_->loss == loss_name::ns) {
     loss_ += negativeSampling(target, lr);
   } else if (args_->loss == loss_name::hs) {

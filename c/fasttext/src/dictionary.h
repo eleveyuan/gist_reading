@@ -47,7 +47,7 @@ class Dictionary {
     void addSubwords(std::vector<int32_t>&, const std::string&, int32_t) const;
 
     std::shared_ptr<Args> args_;
-    std::vector<int32_t> word2int_;  
+    std::vector<int32_t> word2int_;  // hash-index表，存储单词在单词表中的索引
     std::vector<entry> words_;
 
     std::vector<real> pdiscard_;  // 单词丢弃的概率表
@@ -56,7 +56,7 @@ class Dictionary {
     int32_t nlabels_;
     int64_t ntokens_;
 
-    int64_t pruneidx_size_;
+    int64_t pruneidx_size_;  // 构造函数初始值为-1
     std::unordered_map<int32_t, int32_t> pruneidx_;
     void addWordNgrams(
         std::vector<int32_t>& line,

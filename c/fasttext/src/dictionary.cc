@@ -33,7 +33,7 @@ int32_t Dictionary::find(const std::string& w) const {  // 中间层，查找词
 
 int32_t Dictionary::find(const std::string& w, uint32_t h) const {  // 根据单词和hash值快速查找单词索引
   int32_t id = h % MAX_VOCAB_SIZE;
-  while (word2int_[id] != -1 && words_[word2int_[id]].word != w) {
+  while (word2int_[id] != -1 && words_[word2int_[id]].word != w) { // hash冲突
     id = (id + 1) % MAX_VOCAB_SIZE;
   }
   return id;
@@ -319,7 +319,7 @@ void Dictionary::reset(std::istream& in) const {
 
 int32_t Dictionary::getLine(std::istream& in,
                             std::vector<int32_t>& words,
-                            std::minstd_rand& rng) const {  // 非监督模型
+                            std::minstd_rand& rng) const {  // 非监督模型，，在输入到model之后切割好数据
   std::uniform_real_distribution<> uniform(0, 1);
   std::string token;
   int32_t ntokens = 0;
@@ -329,7 +329,7 @@ int32_t Dictionary::getLine(std::istream& in,
   while (readWord(in, token)) {
     int32_t h = find(token);
     int32_t wid = word2int_[h];
-    if (wid < 0) continue;
+    if (wid < 0) continue;  // 单词不存在
 
     ntokens++;
     if (getType(wid) == entry_type::word && !discard(wid, uniform(rng))) {
@@ -343,7 +343,7 @@ int32_t Dictionary::getLine(std::istream& in,
 int32_t Dictionary::getLine(std::istream& in,
                             std::vector<int32_t>& words,
                             std::vector<int32_t>& labels,
-                            std::minstd_rand& rng) const {   // 监督模型
+                            std::minstd_rand& rng) const {   // 监督模型，在输入到model之前切割好数据
   std::vector<int32_t> word_hashes;
   std::string token;
   int32_t ntokens = 0;
@@ -352,7 +352,7 @@ int32_t Dictionary::getLine(std::istream& in,
   words.clear();
   labels.clear();
   while (readWord(in, token)) {
-    uint32_t h = hash(token);
+    uint32_t h = hash(token); // 获取token的hash值
     int32_t wid = getId(token, h);
     entry_type type = wid < 0 ? getType(token) : getType(wid);
 
@@ -361,11 +361,20 @@ int32_t Dictionary::getLine(std::istream& in,
       addSubwords(words, token, wid);  // 获取子词
       word_hashes.push_back(h);
     } else if (type == entry_type::label && wid >= 0) {
-      labels.push_back(wid - nwords_);
+      labels.push_back(wid - nwords_); // 这里为啥要减去单词表长度
     }
     if (token == EOS) break;
   }
   addWordNgrams(words, word_hashes, args_->wordNgrams);
+  /**
+   * 给定句子：i like here
+   * 给定参数：
+   * minn = 3,
+   * maxn = 6,
+   * wordNgrams = 2
+   * 最后获取数据words：
+   * <i>, <li, <lik, <like, <like>, lik, like, like>, ike, ike>, ke>, <he, <her, <here, <here>, her, here, here>, ere, ere>, re>, i like, like here 
+   */
   return ntokens;
 }
 
