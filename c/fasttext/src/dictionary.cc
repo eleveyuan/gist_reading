@@ -365,7 +365,7 @@ int32_t Dictionary::getLine(std::istream& in,
     }
     if (token == EOS) break;
   }
-  addWordNgrams(words, word_hashes, args_->wordNgrams);
+  addWordNgrams(words, word_hashes, args_->wordNgrams);  // ngrams和wordNgrams都是映射到bucket里面
   /**
    * 给定句子：i like here
    * 给定参数：
