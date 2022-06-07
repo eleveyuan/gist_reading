@@ -516,7 +516,7 @@ void FastText::nn(int32_t k) {
   std::set<std::string> banSet;
   std::cout << "Query word? ";
   while (std::cin >> queryWord) {
-    banSet.clear();
+    banSet.clear();   // banSet主要用于analogies任务，这里使用是为了统一接口
     banSet.insert(queryWord);
     getVector(queryVec, queryWord);
     findNN(wordVectors, queryVec, k, banSet);
