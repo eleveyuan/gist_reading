@@ -560,7 +560,7 @@ void *TrainModelThread(void *id) {
         if (c >= sentence_length) continue;
         last_word = sen[c];
         if (last_word == -1) continue;
-        l1 = last_word * layer1_size;
+        l1 = last_word * layer1_size; // 获取last_word在权重矩阵(数组)中的起始索引, layer1_size为偏移
         for (c = 0; c < layer1_size; c++) neu1e[c] = 0;  // 隐藏层到输出层的向量
         // HIERARCHICAL SOFTMAX
         if (hs) for (d = 0; d < vocab[word].codelen; d++) {
